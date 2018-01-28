@@ -17,7 +17,7 @@ h2 {
 h3{
     font-size: 16px;
 }
-ol{
+ul{
     list-style: none;
     font-size: 16px;
     text-align: center;
@@ -86,7 +86,7 @@ ol{
     text-align: left;
     padding: 10px;
 }
-.option:hover{
+li:hover{
     background-color: lightyellow;
     cursor: pointer;
 }

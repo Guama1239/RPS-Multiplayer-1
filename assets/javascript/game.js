@@ -12,42 +12,11 @@ $(document).ready(function(){
     var playersRef = database.ref("/playerData");
     var p1 = {wins:0, losses:0};
     var p2 = {wins:0, losses:0};
+    // var currentTurn = 0;
 
     var numPlayers = 0;
     var inputUserName;
-    var updateMsg = function(){
-        database.ref("/messages").on("value",function(snap){
-            var storedMessages = snap.val();
-            $("#messages").empty();
-            if(storedMessages == null) {
-                return;
-            } else{
-                var keys = Object.keys(storedMessages);
-                for(var i=0; i<keys.length; i++){
-                    var key = keys[i];
-                    var msgObj = storedMessages[key]
-                    var newMsg = msgObj.text.trim();
-                    var sender = msgObj.user.trim();
-                    var color = sender === inputUserName ? "purple": "";
-                    $("#messages").append(`<p><b style="color: ${color}">${sender}: ${newMsg}<b></p>`);
-                    $("#messages").scrollTop($("#messages")[0].scrollHeight);
-                }
-                
-            }
-        }) 
-    }
-    var saveMsg = function(){
-        var msg = $("#msgInput").val();
-        if(inputUserName){
-            database.ref("/messages").push({
-                user: inputUserName,
-                text: msg 
-            })
-        } else{
-            alert("please sign in first");
-        };
-        database.ref("/messages").onDisconnect().remove();
-    }
+
     var getChoiceP1 = function(){
         playersRef.child("p1").child("choice").on("value",function(snap){
             p1.choice = snap.val()
@@ -106,18 +75,25 @@ $(document).ready(function(){
     }
     var displayOptionsP1 = function(){
         $(".p1").find(".option").show();
-        $(".p1").find(".rock").text("Rock");
-        $(".p1").find(".paper").text("Paper");
-        $(".p1").find(".scissors").text("Scissors");
+        // $(".p1").find(".rock").text("Rock");
+        // $(".p1").find(".paper").text("Paper");
+        // $(".p1").find(".scissors").text("Scissors");
+        $(".p1 ul").append("<li>Rock</li><li>Paper</li><li>Scissors</li>")
         $(".p2").find(".option").hide();
     };
     var displayOptionsP2 = function(){
         $(".p2").find(".option").show();
-        $(".p2").find(".rock").text("Rock");
-        $(".p2").find(".paper").text("Paper");
-        $(".p2").find(".scissors").text("Scissors");
+        // $(".p2").find(".rock").text("Rock");
+        // $(".p2").find(".paper").text("Paper");
+        // $(".p2").find(".scissors").text("Scissors");
+        $(".p2 ul").append("<li>Rock</li><li>Paper</li><li>Scissors/li>")
         $(".p1").find(".option").hide();
     };
+    // var displayOptions = function(userRole){
+    //     if(userRole===currentTurn){
+    //         $(".options-p"+userRole+"ul").append("<li>Rock</li><li>Paper</li><li>Scissors/li>")
+    //     }
+    // }
     var displayNameScoresP1 = function(){
         $(".p1").find(".score").show();
         $(".p1").find("h2").text(p1.name);
@@ -181,7 +157,7 @@ $(document).ready(function(){
         judge();
         storeWinsLosses();         
         var timeoutID = setTimeout(function(){
-            database.ref().update({turn:1}); 
+            database.ref("/turn").set(1); 
             $(".picked").text("");
         }, 3000)
     }
@@ -197,13 +173,19 @@ $(document).ready(function(){
         database.ref("/turn").on("value",function(snap){         
             if(snap.val()){
                 if(snap.val()===1){
-                    uponTurn1();   
+                    uponTurn1();
+                    // currentTurn=1;   
                 } else if(snap.val()===2){
                     uponTurn2();
+                    // currentTurn=2;
                 } else if(snap.val()===3){           
                     uponTurn3();
+                    // currentTurn=3;
                 } 
-            } else{uponTurn0();}                      
+            } else{
+                uponTurn0();
+                // currentTurn=0;
+            }                      
         })
     }
     var storeDisplayChoice = function(player, choice){
@@ -215,16 +197,18 @@ $(document).ready(function(){
     } 
     var startGame = function(){
         playersRef.on("child_added",function(){
-            database.ref("/turn").onDisconnect().remove();
+            // database.ref("/turn").onDisconnect().remove();
             numPlayers++;
             if(numPlayers===2){           
-                database.ref().child("turn").set(1);           
+                // database.ref().child("turn").set(1);
+                database.ref("/turn").set(1);             
             } 
         })
     }
     var onPlayerLeave = function(){
         playersRef.on("child_removed", function(snap){
             numPlayers--;
+            database.ref("/turn").set(0);        
 
             if(snap.val()){
                 if(p1.role === "user"){
@@ -260,16 +244,16 @@ $(document).ready(function(){
             playersRef.child("p2").onDisconnect().remove() 
     }
 
-    $(".p1").on("click",".option",function(){
+    $(".p1").on("click","li",function(){
         var c = $(this).attr("data-choice");
-        storeDisplayChoice("p1", c);
-        database.ref().update({turn:2});     
+        storeDisplayChoice("p1", c); 
+        database.ref("/turn").set(2);  
     })
 
-    $(".p2").on("click",".option",function(){
+    $(".p2").on("click","li",function(){
         var c = $(this).attr("data-choice");
         storeDisplayChoice("p2", c);
-        database.ref().update({turn:3}); 
+        database.ref("/turn").set(1); 
     })
 
     $(".signInButton").on("click",function(){
@@ -282,19 +266,53 @@ $(document).ready(function(){
         } else{
             intiateUserP1(inputUserName);
         }        
-        $(".signIn").hide();        
+         $(".signIn").hide();  
+          
     });
 
-    $("#sendBtn").on("click",function(){
-        saveMsg();
-        $("#msgInput").val("");
-    });
+        // var updateMsg = function(){
+    //     database.ref("/messages").on("value",function(snap){
+    //         var storedMessages = snap.val();
+    //         $("#messages").empty();
+    //         if(storedMessages == null) {
+    //             return;
+    //         } else{
+    //             var keys = Object.keys(storedMessages);
+    //             for(var i=0; i<keys.length; i++){
+    //                 var key = keys[i];
+    //                 var msgObj = storedMessages[key]
+    //                 var newMsg = msgObj.text.trim();
+    //                 var sender = msgObj.user.trim();
+    //                 var color = sender === inputUserName ? "purple": "";
+    //                 $("#messages").append(`<p><b style="color: ${color}">${sender}: ${newMsg}<b></p>`);
+    //                 $("#messages").scrollTop($("#messages")[0].scrollHeight);
+    //             }
+                
+    //         }
+    //     }) 
+    // }
+    // var saveMsg = function(){
+    //     var msg = $("#msgInput").val();
+    //     if(inputUserName){
+    //         database.ref("/messages").push({
+    //             user: inputUserName,
+    //             text: msg 
+    //         })
+    //     } else{
+    //         alert("please sign in first");
+    //     };
+    //     database.ref("/messages").onDisconnect().remove();
+    // }
+    // $("#sendBtn").on("click",function(){
+    //     saveMsg();
+    //     $("#msgInput").val("");
+    // });
 
-    $("#msgInput").keyup(function(e){
-        if(e.keyCode === 13){
-            $("#sendBtn").click();
-        }
-    });
+    // $("#msgInput").keyup(function(e){
+    //     if(e.keyCode === 13){
+    //         $("#sendBtn").click();
+    //     }
+    // });
 
     updateNameScoresP1();
     updateNameScoresP2();
