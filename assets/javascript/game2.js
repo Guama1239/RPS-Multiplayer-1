@@ -9,9 +9,8 @@ $(document).ready(function(){
     };
     firebase.initializeApp(config);
     var database = firebase.database();
-    var playersRef = database.ref("/playerData");
-    var turnRef = database.ref("/turn");
-    turnRef.onDisconnect().remove()  
+    var playersRef = database.ref("playerData");
+    var turnRef = database.ref("turn");
     var p1_exist = false;
     var p2_exist = false
     var userName;
@@ -33,8 +32,30 @@ $(document).ready(function(){
             uponP2win();
         } else if (p1_choice === p2_choice) {
             $(".result").html("Tie<br>Game!")
-        }     
+        }            
     }
+var p1_wins = null;
+var p2_wins = null;
+var p1_losses = null;
+var p2_losses = null;
+var p1_name = null;
+var p2_name = null;
+var uponP1win = function(){
+    console.log("judged")
+    p1_wins++;
+    p2_losses++;
+    database.ref("/playerData/1/wins").set(p1_wins);
+    database.ref("/playerData/2/losses").set(p2_losses);
+    $(".result").html(`${p1_name} <br> Wins!`);
+}
+var uponP2win = function(){
+    console.log("judged")
+    p2_wins++;
+    p1_losses++;
+    database.ref("/playerData/1/losses").set(p1_losses);
+    database.ref("/playerData/2/wins").set(p2_wins);
+    $(".result").html(`${p2_name} <br> Wins!`);
+}
 var p1_choice;
 var p2_choice;
 //track number of players and existance of p1 and p2
@@ -49,14 +70,25 @@ var p2_choice;
                 $(".p1").find(".wins").text("Wins: "+ data.wins);
                 $(".p1").find(".losses").text("Losses: "+ data.losses);
                 p1_choice = data.choice;
+                p1_name = data.name
+            } else{
+                $(".p1").find("h2").text("waiting for player 1");
+                $(".p1").find(".wins").text("");
+                $(".p1").find(".losses").text("");
             };
             if(p2_exist){
                 let data = snap.child("2").val();
                 $(".p2").find("h2").text(data.name);
                 $(".p2").find(".wins").text("Wins: "+ data.wins);
                 $(".p2").find(".losses").text("Losses: "+ data.losses);
-                p2_choice = data.choice;    
+                p2_choice = data.choice;
+                p2_name = data.name;    
+            } else{
+                $(".p2").find("h2").text("waiting for player 2");
+                $(".p2").find(".wins").text("");
+                $(".p2").find(".losses").text("");
             };
+            turnRef.onDisconnect().remove();
         }
     })
     
@@ -91,7 +123,7 @@ var uponTurnChange = function(){
         case 1:
         case 2:
             let otherRole = userRole === 1 ? 2:1;
-            console.log("upon turn change"+ " otherRole:"+otherRole)
+            console.log("current turn: "+ currentTurn+ " otherRole:"+otherRole)
             if(userRole === currentTurn){
                 console.log("activated")
                 $(".p"+userRole+" ul").append("<li>Rock</li><li>Paper</li><li>Scissors</li>");
@@ -104,10 +136,13 @@ var uponTurnChange = function(){
             break;
         case 3:
             judge();
+            setTimeout(function(){
+                turnRef.set(1);
+                $(".picked").text("");
+            }, 3000)
             break;
         default:
             $(".p"+userRole).removeClass("active");
-            $(".p"+userRole+ " ul").empty();
     }
 }
 
@@ -115,7 +150,8 @@ turnRef.on("value",function(snap){
     if(snap.val()){
         currentTurn = snap.val();
         uponTurnChange();
-    }
+    } 
+   
 })
 $(".signInButton").on("click",function(){
     event.preventDefault();
@@ -130,8 +166,13 @@ $(".signInButton").on("click",function(){
 $(".player").on("click","li",function(){
     let choice = $(this).text();
     database.ref("/playerData/"+userRole+"/choice").set(choice)
-    console.log(currentTurn)
-    turnRef.transaction(turn=>turn+1);
+    console.log("userrole +1 = " +(userRole+1));
+    turnRef.transaction(function(turn) {
+        return turn + 1;
+      });
+    console.log("after userrole +1 = " +(userRole+1));
+    $(".p"+userRole+ " ul").empty();
+    $(".p"+userRole).find(".picked").text(choice);
 })
 
 
